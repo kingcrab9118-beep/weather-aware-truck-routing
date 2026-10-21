@@ -21,9 +21,16 @@ DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for h in os.getenv(
+        "DJANGO_ALLOWED_HOSTS",
+        "localhost,127.0.0.1,.onrender.com,.hf.space",
+    ).split(",")
     if h.strip()
 ]
+# Hugging Face Spaces / reverse proxies may send the Space hostname
+if os.getenv("SPACE_HOST"):
+    ALLOWED_HOSTS.append(os.getenv("SPACE_HOST"))
+
 
 INSTALLED_APPS = [
     "django.contrib.admin",

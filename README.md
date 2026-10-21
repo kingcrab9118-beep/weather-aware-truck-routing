@@ -1,3 +1,14 @@
+---
+title: Weather-Aware Truck Routing
+emoji: 🚛
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+short_description: Safest truck routes using weather, load weight, and travel time
+---
+
 # Weather-Aware Truck Routing
 
 React + Django app that helps a truck driver pick the safest route using **weather**, **load weight**, and **travel time**.
@@ -85,29 +96,20 @@ cd backend
 python manage.py test routing
 ```
 
-## Deploy (Render — one service)
+## Deploy (Hugging Face Spaces — no credit card)
 
-The production build serves the React SPA and Django API from **one URL**.
+Production serves the React SPA and Django API from **one URL** via Docker.
 
-1. Push this repo to GitHub (public or private).
-2. Go to [Render Blueprint deploy](https://render.com/deploy) and connect the repo  
-   (or use **New → Blueprint** and select this repo — it reads `render.yaml`).
-3. Optional: set `ORS_API_KEY` in the Render dashboard (OpenRouteService).
-4. After deploy, open `https://<service>.onrender.com` — UI at `/`, API at `/api/`.
+1. Create a free [Hugging Face](https://huggingface.co/join) account (email is enough).
+2. Create a **Docker** Space named `weather-aware-truck-routing` (public).
+3. Push this repo to the Space (or duplicate from GitHub).
 
-Local production-style build:
+Live app: `https://<username>-weather-aware-truck-routing.hf.space`  
+API: `/api/health/`
 
-```bash
-cd frontend && npm install && npm run build
-# Windows PowerShell:
-Remove-Item -Recurse -Force ..\backend\frontend_dist -ErrorAction SilentlyContinue
-Copy-Item -Recurse dist ..\backend\frontend_dist
-cd ..\backend
-pip install -r requirements.txt
-gunicorn config.wsgi:application --bind 127.0.0.1:8001 --timeout 120
-```
+Optional: set Space secret `ORS_API_KEY` for better truck routing.
 
-Free Render instances sleep after idle time; the first request may take ~30–60s to wake.
+Spaces may sleep when idle; the first request can take a minute to wake.
 
 ## Deliverables checklist
 
