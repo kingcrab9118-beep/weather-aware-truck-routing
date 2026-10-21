@@ -79,33 +79,59 @@ export function sampleAlongRoute(coords, intervalMi) {
   return samples
 }
 
+/**
+ * Keep heatmap points that lie near a route polyline (GeoJSON [lon, lat]).
+ * Used so the corridor forecast hugs the selected route, not alternate detours.
+ */
+export function pointsNearRoute(points, routeCoords, maxMi = 40) {
+  if (!points?.length || !routeCoords?.length) return []
+  const stride = Math.max(1, Math.floor(routeCoords.length / 80))
+  return points.filter((p) => {
+    for (let i = 0; i < routeCoords.length; i += stride) {
+      const [lon, lat] = routeCoords[i]
+      if (haversineMi(p.lat, p.lon, lat, lon) <= maxMi) return true
+    }
+    return false
+  })
+}
+
 export function corridorGrid(coords, spacingMi = 28, maxPoints = 80) {
-  const lons = coords.map((c) => c[0])
-  const lats = coords.map((c) => c[1])
-  const pad = 0.5
-  const bbox = {
-    min_lon: Math.min(...lons) - pad,
-    min_lat: Math.min(...lats) - pad,
-    max_lon: Math.max(...lons) + pad,
-    max_lat: Math.max(...lats) + pad,
-  }
-  const midLat = (bbox.min_lat + bbox.max_lat) / 2
-  const latStep = spacingMi / 69
-  const lonStep = spacingMi / Math.max(69 * Math.cos((midLat * Math.PI) / 180), 1e-6)
-  const stride = Math.max(1, Math.floor(coords.length / 60))
+  if (!coords?.length) return []
+
+  const centerline = sampleAlongRoute(coords, spacingMi)
+  const midLat = coords.reduce((s, c) => s + c[1], 0) / coords.length
+  const latOff = (spacingMi / 69) * 0.55
+  const lonOff = (spacingMi / Math.max(69 * Math.cos((midLat * Math.PI) / 180), 1e-6)) * 0.55
+  const seen = new Set()
   const points = []
 
-  for (let lat = bbox.min_lat; lat <= bbox.max_lat && points.length < maxPoints; lat += latStep) {
-    for (let lon = bbox.min_lon; lon <= bbox.max_lon && points.length < maxPoints; lon += lonStep) {
-      let near = false
-      for (let i = 0; i < coords.length; i += stride) {
-        const [clon, clat] = coords[i]
-        if (haversineMi(lat, lon, clat, clon) <= spacingMi * 1.6) {
-          near = true
-          break
-        }
+  const add = (lat, lon) => {
+    const keyLat = +lat.toFixed(3)
+    const keyLon = +lon.toFixed(3)
+    const key = `${keyLat},${keyLon}`
+    if (seen.has(key)) return points.length >= maxPoints
+    seen.add(key)
+    points.push({ lat: keyLat, lon: keyLon })
+    return points.length >= maxPoints
+  }
+
+  // Centerline first so the full haul is covered before lateral offsets.
+  for (const cp of centerline) {
+    if (add(cp.lat, cp.lon)) return points
+  }
+  const remaining = maxPoints - points.length
+  if (remaining > 0 && centerline.length) {
+    const stride = Math.max(1, Math.floor(centerline.length / Math.max(1, Math.floor(remaining / 4))))
+    for (let i = 0; i < centerline.length; i += stride) {
+      const cp = centerline[i]
+      for (const [dlat, dlon] of [
+        [latOff, 0],
+        [-latOff, 0],
+        [0, lonOff],
+        [0, -lonOff],
+      ]) {
+        if (add(cp.lat + dlat, cp.lon + dlon)) return points
       }
-      if (near) points.push({ lat: +lat.toFixed(4), lon: +lon.toFixed(4) })
     }
   }
   return points

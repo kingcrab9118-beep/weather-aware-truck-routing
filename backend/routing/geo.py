@@ -114,27 +114,49 @@ def corridor_grid(
     spacing_mi: float = 28.0,
     max_points: int = 120,
 ) -> list[dict]:
-    """Build a grid covering the route corridor for heatmap forecasting."""
-    bbox = bounding_box(coords, pad_deg=0.5)
-    # Approximate degrees per mile
-    mid_lat = (bbox["min_lat"] + bbox["max_lat"]) / 2
-    lat_step = spacing_mi / 69.0
-    lon_step = spacing_mi / max(69.0 * math.cos(math.radians(mid_lat)), 1e-6)
+    """
+    Build heatmap sample points along the route corridor.
 
+    Samples along the polyline (not a south→north bbox fill) so long east–west
+    hauls are not dominated by southern alternate legs when max_points is hit.
+    """
+    if not coords:
+        return []
+
+    # Centerline first so long hauls are covered end-to-end before any
+    # lateral offsets consume the max_points budget (old bug: only the
+    # origin tip was sampled when offsets × spacing hit the cap early).
+    centerline = sample_along_route(coords, spacing_mi)
+    if not centerline:
+        lon, lat = coords[0]
+        centerline = [{"lat": lat, "lon": lon, "distance_mi": 0.0, "index": 0}]
+
+    mid_lat = sum(c[1] for c in coords) / len(coords)
+    lat_off = spacing_mi / 69.0 * 0.55
+    lon_off = spacing_mi / max(69.0 * math.cos(math.radians(mid_lat)), 1e-6) * 0.55
+
+    seen: set[tuple[float, float]] = set()
     points: list[dict] = []
-    lat = bbox["min_lat"]
-    while lat <= bbox["max_lat"] and len(points) < max_points:
-        lon = bbox["min_lon"]
-        while lon <= bbox["max_lon"] and len(points) < max_points:
-            # Keep points near the route (within ~spacing)
-            near = False
-            for cloni, clati in coords[:: max(1, len(coords) // 60)]:
-                if haversine_mi(lat, lon, clati, cloni) <= spacing_mi * 1.6:
-                    near = True
-                    break
-            if near:
-                points.append({"lat": round(lat, 4), "lon": round(lon, 4)})
-            lon += lon_step
-        lat += lat_step
 
+    def _add(lat: float, lon: float) -> bool:
+        key = (round(lat, 3), round(lon, 3))
+        if key in seen:
+            return False
+        seen.add(key)
+        points.append({"lat": key[0], "lon": key[1]})
+        return len(points) >= max_points
+
+    for cp in centerline:
+        if _add(cp["lat"], cp["lon"]):
+            return points
+
+    # Lateral offsets: stride along the centerline so both ends get thickness
+    # (filling from the origin first left the destination half bare).
+    remaining = max_points - len(points)
+    if remaining > 0 and centerline:
+        stride = max(1, len(centerline) // max(1, remaining // 4))
+        for cp in centerline[::stride]:
+            for dlat, dlon in ((lat_off, 0.0), (-lat_off, 0.0), (0.0, lon_off), (0.0, -lon_off)):
+                if _add(cp["lat"] + dlat, cp["lon"] + dlon):
+                    return points
     return points

@@ -194,8 +194,23 @@ async function fetchWeatherAtPoints(points, departure, routeDurationSec, totalMi
   return enriched
 }
 
-async function fetchHeatmapForecast(allCoords, hours = 48) {
-  const grid = corridorGrid(allCoords, 28, 80)
+async function fetchHeatmapForecast(routeCoordsList, hours = 48) {
+  const routes = Array.isArray(routeCoordsList?.[0]?.[0])
+    ? routeCoordsList
+    : [routeCoordsList]
+  const budgets = [70, ...Array(Math.max(routes.length - 1, 0)).fill(15)]
+  const seen = new Set()
+  const grid = []
+  for (let i = 0; i < routes.length; i++) {
+    for (const p of corridorGrid(routes[i], 25, budgets[i] ?? 15)) {
+      const key = `${p.lat},${p.lon}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      grid.push(p)
+      if (grid.length >= 90) break
+    }
+    if (grid.length >= 90) break
+  }
   if (!grid.length) return { hours: [], points: [] }
 
   const seriesList = await fetchWeatherBatch(grid)
@@ -232,11 +247,11 @@ export async function analyzeTripClient({
   const rawRoutes = await fetchOsrmRoutes(originHit, destHit)
 
   const analyzed = []
-  const allCoords = []
+  const routeCoordsList = []
 
   for (const route of rawRoutes) {
     const coords = route.geometry.coordinates
-    allCoords.push(...coords)
+    routeCoordsList.push(coords)
     const totalMi = route.distance_mi || routeLengthMi(coords)
     const samples = sampleAlongRoute(coords, Number(sampleIntervalMi))
     const withWeather = await fetchWeatherAtPoints(
@@ -278,6 +293,12 @@ export async function analyzeTripClient({
   const ranked = recommendRoutes(analyzed)
   const recommended = ranked.find((r) => r.recommended) || ranked[0] || null
 
+  let orderedCoords = routeCoordsList
+  if (recommended) {
+    const rec = recommended.geometry.coordinates
+    orderedCoords = [rec, ...routeCoordsList.filter((c) => c !== rec)]
+  }
+
   return {
     origin: originHit,
     destination: destHit,
@@ -286,6 +307,6 @@ export async function analyzeTripClient({
     sample_interval_mi: Number(sampleIntervalMi),
     routes: ranked,
     recommended_route_id: recommended?.id ?? null,
-    heatmap: await fetchHeatmapForecast(allCoords, 48),
+    heatmap: await fetchHeatmapForecast(orderedCoords, 48),
   }
 }

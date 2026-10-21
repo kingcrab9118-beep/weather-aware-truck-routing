@@ -35,11 +35,11 @@ def analyze_trip(
     raw_routes = fetch_routes(origin, destination)
 
     analyzed: list[dict] = []
-    all_coords: list[tuple[float, float]] = []
+    route_coords_list: list[list[tuple[float, float]]] = []
 
     for route in raw_routes:
         coords = [(c[0], c[1]) for c in route["geometry"]["coordinates"]]
-        all_coords.extend(coords)
+        route_coords_list.append(coords)
         total_mi = route["distance_mi"] or route_length_mi(coords)
         samples = sample_along_route(coords, float(sample_interval_mi))
         with_weather = fetch_weather_at_points(
@@ -84,6 +84,17 @@ def analyze_trip(
     ranked = recommend_routes(analyzed)
     recommended = next((r for r in ranked if r.get("recommended")), ranked[0] if ranked else None)
 
+    # Prefer recommended corridor first so heatmap samples hug the primary choice;
+    # still include alternate route polylines as separate corridors (not concatenated).
+    ordered_coords = route_coords_list
+    if recommended:
+        rec_coords = [
+            (c[0], c[1]) for c in recommended["geometry"]["coordinates"]
+        ]
+        ordered_coords = [rec_coords] + [
+            c for c in route_coords_list if c != rec_coords
+        ]
+
     return {
         "origin": origin,
         "destination": destination,
@@ -92,5 +103,5 @@ def analyze_trip(
         "sample_interval_mi": sample_interval_mi,
         "routes": ranked,
         "recommended_route_id": recommended["id"] if recommended else None,
-        "heatmap": fetch_heatmap_forecast(all_coords, hours=48),
+        "heatmap": fetch_heatmap_forecast(ordered_coords, hours=48),
     }

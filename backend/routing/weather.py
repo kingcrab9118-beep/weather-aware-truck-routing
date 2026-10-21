@@ -103,9 +103,36 @@ def fetch_weather_at_points(
     return enriched
 
 
-def fetch_heatmap_forecast(coords: list[tuple[float, float]], hours: int = 48) -> dict[str, Any]:
-    # Denser corridor grid → smoother heatmap (still capped for Open-Meteo URL size)
-    grid = corridor_grid(coords, spacing_mi=28.0, max_points=120)
+def fetch_heatmap_forecast(
+    routes_coords: list[list[tuple[float, float]]] | list[tuple[float, float]],
+    hours: int = 48,
+) -> dict[str, Any]:
+    """
+    Build a corridor heatmap. Accepts either one polyline or a list of polylines
+    (one per route). Each route is sampled separately so we never treat a jump
+    between unrelated polylines as a road segment.
+    """
+    if not routes_coords:
+        return {"hours": [], "points": []}
+
+    # Backward-compatible: flat list of (lon, lat) → single route
+    if routes_coords and isinstance(routes_coords[0], tuple):
+        route_list = [routes_coords]  # type: ignore[list-item]
+    else:
+        route_list = routes_coords  # type: ignore[assignment]
+
+    # Heatmap follows the primary (recommended / selected) corridor only so
+    # sample budget covers the full haul end-to-end — not just the origin tip.
+    primary = route_list[0]
+    seen: set[tuple[float, float]] = set()
+    grid: list[dict] = []
+    for p in corridor_grid(primary, spacing_mi=20.0, max_points=120):
+        key = (p["lat"], p["lon"])
+        if key in seen:
+            continue
+        seen.add(key)
+        grid.append(p)
+
     if not grid:
         return {"hours": [], "points": []}
 

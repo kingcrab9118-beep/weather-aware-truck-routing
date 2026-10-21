@@ -9,6 +9,7 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import HeatmapLayer from './HeatmapLayer'
+import { pointsNearRoute } from '../lib/geo'
 import { RISK_COLORS, ROUTE_PALETTE, formatEta } from '../riskColors'
 
 /** Free basemap — Carto CDN now watermarks without an API key. */
@@ -47,6 +48,15 @@ export default function RouteMap({
   const routes = result?.routes || []
   const selected = routes.find((r) => r.id === selectedRouteId) || routes[0]
 
+  // Heatmap is built from all route corridors; clip to the selected route so
+  // weather on southern/northern alternates does not float beside this path.
+  const heatmapPoints = useMemo(() => {
+    const points = result?.heatmap?.points
+    const coords = selected?.geometry?.coordinates
+    if (!points?.length || !coords?.length) return points || []
+    return pointsNearRoute(points, coords, 38)
+  }, [result?.heatmap?.points, selected])
+
   const center = useMemo(() => {
     if (result?.origin) return [result.origin.lat, result.origin.lon]
     return [39.5, -98.35]
@@ -75,7 +85,7 @@ export default function RouteMap({
         <BaseTiles />
         <FitBounds routes={routes} selectedId={selectedRouteId} />
         <HeatmapLayer
-          points={result.heatmap?.points}
+          points={heatmapPoints}
           hourIndex={hourIndex}
           visible={showHeatmap}
         />

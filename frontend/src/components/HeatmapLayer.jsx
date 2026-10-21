@@ -13,28 +13,29 @@ export default function HeatmapLayer({ points, hourIndex, visible }) {
   useEffect(() => {
     if (!visible || !points?.length) return undefined
 
-    const latlngs = points
-      .map((p) => {
-        const intensity = p.intensities?.[hourIndex] ?? 0
-        if (intensity <= 0.01) return null
-        // Soft floor so the corridor reads as a band, not isolated dots
-        const weight = Math.min(1, 0.18 + intensity * 0.92)
-        return [p.lat, p.lon, weight]
-      })
-      .filter(Boolean)
+    // Paint every corridor sample end-to-end. Calm stretches still get a
+    // visible teal band; higher intensity brightens toward amber/red.
+    const latlngs = points.map((p) => {
+      const intensity = Math.max(0, Math.min(1, p.intensities?.[hourIndex] ?? 0))
+      // Keep a strong floor so calm western miles stay visible as a teal ribbon
+      const weight = Math.min(1, 0.55 + intensity * 0.45)
+      return [p.lat, p.lon, weight]
+    })
+
+    if (!latlngs.length) return undefined
 
     const layer = L.heatLayer(latlngs, {
-      radius: 42,
+      radius: 48,
       blur: 32,
-      maxZoom: 11,
+      maxZoom: 9,
       max: 1,
-      minOpacity: 0.4,
+      minOpacity: 0.55,
       gradient: {
-        0.15: '#1a4d3a',
-        0.35: '#2f9e6b',
-        0.55: '#c9a227',
-        0.75: '#d97706',
-        0.9: '#c2410c',
+        0.0: '#1f6b4a',
+        0.3: '#2f9e6b',
+        0.5: '#c9a227',
+        0.65: '#d97706',
+        0.8: '#c2410c',
         1.0: '#7f1d1d',
       },
     })

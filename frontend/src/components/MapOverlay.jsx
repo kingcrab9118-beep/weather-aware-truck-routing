@@ -26,8 +26,8 @@ export default function MapOverlay({
       <div className="heatmap-panel">
         <h3>Weather heatmap · corridor forecast</h3>
         <p className="hint">
-          Slide 0–48 hours from now. Intensity blends wind, rain, and snow risk along the trip
-          corridor.
+          Slide 0–48 hours from now along the selected route corridor. Checkpoint colors use the
+          truck’s ETA weather; this slider is the absolute forecast clock.
         </p>
         <div className="slider-row">
           <input
