@@ -1,0 +1,4 @@
+$ErrorActionPreference = "Stop"
+Set-Location "$PSScriptRoot\..\frontend"
+$env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
+npm run dev -- --port 5173
