@@ -96,20 +96,26 @@ cd backend
 python manage.py test routing
 ```
 
-## Deploy (Hugging Face Spaces — no credit card)
+## Hosted app (GitHub Pages — no credit card)
 
-Production serves the React SPA and Django API from **one URL** via Docker.
+The **hosted version** runs entirely in the browser on GitHub Pages:
+geocoding (Open-Meteo), routing (OSRM), weather (Open-Meteo), and the same risk rules.
 
-1. Create a free [Hugging Face](https://huggingface.co/join) account (email is enough).
-2. Create a **Docker** Space named `weather-aware-truck-routing` (public).
-3. Push this repo to the Space (or duplicate from GitHub).
+**Live URL:** https://kingcrab9118-beep.github.io/weather-aware-truck-routing/
 
-Live app: `https://<username>-weather-aware-truck-routing.hf.space`  
-API: `/api/health/`
+Deploy is automatic on push to `main` (`.github/workflows/deploy-pages.yml`).  
+First time only: repo **Settings → Pages → Source: GitHub Actions**.
 
-Optional: set Space secret `ORS_API_KEY` for better truck routing.
+Local static preview:
 
-Spaces may sleep when idle; the first request can take a minute to wake.
+```bash
+cd frontend
+set VITE_BASE=/
+npm run build
+npm run preview
+```
+
+Django backend remains available for local full-stack work (`VITE_USE_CLIENT=false`).
 
 ## Deliverables checklist
 

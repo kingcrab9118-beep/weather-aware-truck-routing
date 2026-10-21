@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Always load backend/.env (not just process cwd)
-load_dotenv(BASE_DIR / ".env", override=True)
+# Load backend/.env without overriding real process env (so deploy hosts win)
+load_dotenv(BASE_DIR / ".env", override=False)
 
 SECRET_KEY = os.getenv(
     "DJANGO_SECRET_KEY",
@@ -23,13 +23,16 @@ ALLOWED_HOSTS = [
     h.strip()
     for h in os.getenv(
         "DJANGO_ALLOWED_HOSTS",
-        "localhost,127.0.0.1,.onrender.com,.hf.space",
+        "localhost,127.0.0.1,.onrender.com,.hf.space,.loca.lt,.localtunnel.me,.trycloudflare.com",
     ).split(",")
     if h.strip()
 ]
 # Hugging Face Spaces / reverse proxies may send the Space hostname
 if os.getenv("SPACE_HOST"):
     ALLOWED_HOSTS.append(os.getenv("SPACE_HOST"))
+# Tunnel / unknown public hosts (set DJANGO_ALLOWED_HOSTS=* in env to allow all)
+if ALLOWED_HOSTS == ["*"]:
+    ALLOWED_HOSTS = ["*"]
 
 
 INSTALLED_APPS = [
