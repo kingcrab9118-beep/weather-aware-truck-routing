@@ -1,0 +1,20 @@
+modules = ["nodejs-20", "python-3.12", "web"]
+run = "bash scripts/replit-start.sh"
+hidden = [".config", ".git", "frontend/node_modules", "backend/.venv", "**/__pycache__"]
+
+[nix]
+channel = "stable-24_05"
+
+[deployment]
+run = ["bash", "scripts/replit-start.sh"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 8000
+externalPort = 80
+
+[env]
+DJANGO_DEBUG = "False"
+DJANGO_ALLOWED_HOSTS = ".replit.dev,.repl.co,.replit.app,localhost,127.0.0.1"
+PORT = "8000"
+VITE_USE_CLIENT = "false"
