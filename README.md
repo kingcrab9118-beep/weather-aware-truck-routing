@@ -120,6 +120,6 @@ Django backend remains available for local full-stack work (`VITE_USE_CLIENT=fal
 ## Deliverables checklist
 
 - [x] Working React + Django app
-- [ ] GitHub repository
-- [ ] Hosted application
+- [x] GitHub repository — https://github.com/kingcrab9118-beep/weather-aware-truck-routing
+- [x] Hosted application — https://kingcrab9118-beep.github.io/weather-aware-truck-routing/
 - [ ] 5–10 min Loom walkthrough
