@@ -155,4 +155,8 @@ NOMINATIM_BASE_URL = os.getenv(
 OPEN_METEO_BASE_URL = os.getenv(
     "OPEN_METEO_BASE_URL", "https://api.open-meteo.com/v1"
 )
+OPEN_METEO_GEOCODING_URL = os.getenv(
+    "OPEN_METEO_GEOCODING_URL",
+    "https://geocoding-api.open-meteo.com/v1/search",
+)
 REQUEST_USER_AGENT = "WeatherAwareTruckRouting/1.0 (educational project)"

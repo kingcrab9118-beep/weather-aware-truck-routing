@@ -126,7 +126,8 @@ def fetch_heatmap_forecast(
     primary = route_list[0]
     seen: set[tuple[float, float]] = set()
     grid: list[dict] = []
-    for p in corridor_grid(primary, spacing_mi=20.0, max_points=120):
+    # Cap samples so Open-Meteo + tunnel hosts finish before browser/proxy timeouts.
+    for p in corridor_grid(primary, spacing_mi=28.0, max_points=72):
         key = (p["lat"], p["lon"])
         if key in seen:
             continue

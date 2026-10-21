@@ -12,11 +12,22 @@ export async function analyzeTrip(payload) {
   if (USE_CLIENT) {
     return analyzeTripClient(payload)
   }
-  const res = await fetch(`${API_BASE}/analyze/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  let res
+  try {
+    res = await fetch(`${API_BASE}/analyze/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+  } catch (err) {
+    const msg = err?.message || String(err)
+    if (/Failed to fetch|NetworkError|Load failed/i.test(msg)) {
+      throw new Error(
+        'Network error reaching the API (connection dropped). Refresh the page and try again — long analyses can time out on tunnel hosts.',
+      )
+    }
+    throw err
+  }
   const data = await res.json().catch(() => ({}))
   if (!res.ok) {
     throw new Error(data.detail || `Request failed (${res.status})`)
